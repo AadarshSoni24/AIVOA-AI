@@ -33,7 +33,7 @@ from services.contract_transformer import map_severity_title
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/investigations", tags=["Investigations"])
+router = APIRouter(tags=["Investigations"])
 
 def db_to_contract(db_inv: Investigation) -> InvestigationContract:
     incident = InvestigationIncident(

@@ -19,14 +19,19 @@ from services.contract_transformer import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/copilot", tags=["AI Copilot"])
+router = APIRouter(tags=["AI Copilot"])
 
 @router.post("/message", response_model=CopilotResponseContract)
 async def handle_copilot_message(
-    req: CopilotMessageRequest,
-    db: AsyncSession = Depends(get_db)
+    req: CopilotMessageRequest
 ):
     try:
+        if not settings.GROQ_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="GROQ_API_KEY is not configured on the server. Please add GROQ_API_KEY in your Vercel Project Settings -> Environment Variables."
+            )
+
         logger.info(f"Received Copilot prompt: {req.message[:80]}...")
         prior_inv = req.investigation or {}
         flat_form_data = flatten_investigation(prior_inv)
@@ -73,10 +78,15 @@ async def handle_document_upload(
     file: UploadFile = File(...),
     investigation: Optional[str] = Form(None),
     history: Optional[str] = Form(None),
-    current_form_data: Optional[str] = Form(None),
-    db: AsyncSession = Depends(get_db)
+    current_form_data: Optional[str] = Form(None)
 ):
     try:
+        if not settings.GROQ_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="GROQ_API_KEY is not configured on the server. Please add GROQ_API_KEY in your Vercel Project Settings -> Environment Variables."
+            )
+
         if not file.filename.lower().endswith((".pdf", ".txt")):
             raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported.")
 

@@ -61,10 +61,13 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"error": "Internal Server Error", "detail": str(exc)}
     )
 
-# Include Routers
-app.include_router(health_router)
-app.include_router(copilot_router)
-app.include_router(investigations_router)
+# Include Routers with and without /api prefix for full Vercel proxy & dev compatibility
+app.include_router(health_router, prefix="/api")
+app.include_router(health_router, prefix="")
+app.include_router(copilot_router, prefix="/api/copilot")
+app.include_router(copilot_router, prefix="/copilot")
+app.include_router(investigations_router, prefix="/api/investigations")
+app.include_router(investigations_router, prefix="/investigations")
 
 if __name__ == "__main__":
     import uvicorn

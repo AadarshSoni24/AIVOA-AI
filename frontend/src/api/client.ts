@@ -26,20 +26,26 @@ const api = axios.create({
 export function formatErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const serverDetail = error.response?.data?.detail;
-    if (typeof serverDetail === 'string' && serverDetail) {
+    if (typeof serverDetail === 'string' && serverDetail.trim()) {
       return serverDetail;
     }
     if (Array.isArray(serverDetail) && serverDetail.length > 0) {
       return serverDetail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
     }
+    if (error.response?.data?.error) {
+      return String(error.response.data.error);
+    }
     if (error.response?.data?.message) {
       return String(error.response.data.message);
+    }
+    if (typeof error.response?.data === 'string' && error.response.data.trim()) {
+      return error.response.data.trim();
     }
     if (error.response?.status === 404) {
       return 'The requested resource was not found (404).';
     }
     if (error.response?.status === 500) {
-      return 'Internal server error occurred on the investigation engine.';
+      return 'Internal server error occurred on the investigation engine. Please check backend logs or Groq configuration.';
     }
     if (error.code === 'ECONNABORTED') {
       return 'Request timed out waiting for AI response. Please try again.';

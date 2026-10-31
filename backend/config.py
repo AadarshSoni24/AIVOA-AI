@@ -1,4 +1,5 @@
 import os
+import tempfile
 from typing import List, Union
 from dotenv import load_dotenv
 from pydantic import field_validator
@@ -8,16 +9,28 @@ from pydantic_settings import BaseSettings
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 load_dotenv(dotenv_path=env_path)
 
+def get_default_db_url() -> str:
+    if os.getenv("DATABASE_URL"):
+        return os.environ["DATABASE_URL"]
+    # Check if running in Vercel or serverless (read-only filesystem)
+    is_serverless = (
+        bool(os.getenv("VERCEL"))
+        or bool(os.getenv("VERCEL_ENV"))
+        or bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+        or not os.access(".", os.W_OK)
+    )
+    if is_serverless:
+        tmp_dir = tempfile.gettempdir().replace("\\", "/")
+        return f"sqlite+aiosqlite:///{tmp_dir}/aivoa.db"
+    return "sqlite+aiosqlite:///./aivoa.db"
+
 class Settings(BaseSettings):
     APP_NAME: str = "AIVOA.AI - Root Cause Analysis (RCA) Module"
     APP_VERSION: str = "1.0.0"
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite+aiosqlite:////tmp/aivoa.db" if os.getenv("VERCEL") else "sqlite+aiosqlite:///./aivoa.db"
-    )
-    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
+    DATABASE_URL: str = get_default_db_url()
+    CORS_ORIGINS: Union[List[str], str] = ["*"]
 
     @field_validator("CORS_ORIGINS", mode="before")
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
@@ -40,4 +53,3 @@ class Settings(BaseSettings):
     }
 
 settings = Settings()
-
