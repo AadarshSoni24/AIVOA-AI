@@ -25,22 +25,56 @@ const api = axios.create({
 // Format any axios or backend error into a clean human message
 export function formatErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const serverDetail = error.response?.data?.detail;
-    if (typeof serverDetail === 'string' && serverDetail.trim()) {
-      return serverDetail;
+    const data = error.response?.data;
+    if (data) {
+      // 1. If backend returned detail string or array
+      if (data.detail) {
+        if (typeof data.detail === 'string' && data.detail.trim()) {
+          return data.detail.trim();
+        }
+        if (Array.isArray(data.detail) && data.detail.length > 0) {
+          return data.detail.map((d: any) => (typeof d === 'string' ? d : d.msg || JSON.stringify(d))).join('; ');
+        }
+        if (typeof data.detail === 'object') {
+          return data.detail.message || JSON.stringify(data.detail);
+        }
+      }
+
+      // 2. If data.error is object or string (e.g. Vercel function error or Groq error)
+      if (data.error) {
+        if (typeof data.error === 'string' && data.error.trim()) {
+          return data.error.trim();
+        }
+        if (typeof data.error === 'object') {
+          return data.error.message || data.error.detail || data.error.code || JSON.stringify(data.error);
+        }
+      }
+
+      // 3. If data.message is object or string
+      if (data.message) {
+        if (typeof data.message === 'string' && data.message.trim()) {
+          return data.message.trim();
+        }
+        if (typeof data.message === 'object') {
+          return data.message.message || JSON.stringify(data.message);
+        }
+      }
+
+      // 4. If data is string directly
+      if (typeof data === 'string' && data.trim()) {
+        return data.trim();
+      }
+
+      // 5. If data is an arbitrary object
+      if (typeof data === 'object') {
+        try {
+          return JSON.stringify(data);
+        } catch {
+          // fall through
+        }
+      }
     }
-    if (Array.isArray(serverDetail) && serverDetail.length > 0) {
-      return serverDetail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
-    }
-    if (error.response?.data?.error) {
-      return String(error.response.data.error);
-    }
-    if (error.response?.data?.message) {
-      return String(error.response.data.message);
-    }
-    if (typeof error.response?.data === 'string' && error.response.data.trim()) {
-      return error.response.data.trim();
-    }
+
     if (error.response?.status === 404) {
       return 'The requested resource was not found (404).';
     }
@@ -54,7 +88,14 @@ export function formatErrorMessage(error: unknown): string {
       return `Network connection failed: ${error.message}`;
     }
   }
-  return error instanceof Error ? error.message : 'An unexpected error occurred.';
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null) {
+    return (error as any).message || JSON.stringify(error);
+  }
+  return String(error || 'An unexpected error occurred.');
 }
 
 export interface SendMessageParams {

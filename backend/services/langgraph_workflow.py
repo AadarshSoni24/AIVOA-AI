@@ -65,13 +65,32 @@ class RCAState(TypedDict):
     response_message: str
     tool_used: str
 
+class ResilientChatGroq:
+    def __init__(self):
+        self.primary_model = settings.GROQ_MODEL or "openai/gpt-oss-120b"
+        fallback_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+        self.models_to_try = [self.primary_model] + [m for m in fallback_models if m != self.primary_model]
+
+    def invoke(self, messages):
+        last_exc = None
+        for model_name in self.models_to_try:
+            try:
+                llm = ChatGroq(
+                    model=model_name,
+                    temperature=0.1,
+                    groq_api_key=settings.GROQ_API_KEY,
+                    max_retries=1
+                )
+                return llm.invoke(messages)
+            except Exception as e:
+                logger.warning(f"Model {model_name} invocation failed: {e}. Attempting fallback...")
+                last_exc = e
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("No LLM models could be reached on Groq.")
+
 def get_llm():
-    return ChatGroq(
-        model=settings.GROQ_MODEL,
-        temperature=0.1,
-        groq_api_key=settings.GROQ_API_KEY,
-        max_retries=2
-    )
+    return ResilientChatGroq()
 
 # Node 1: Classify Intent
 def classify_intent_node(state: RCAState) -> Dict[str, Any]:

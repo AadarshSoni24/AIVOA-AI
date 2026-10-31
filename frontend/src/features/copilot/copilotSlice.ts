@@ -148,7 +148,15 @@ export const sendMessage = createAsyncThunk<
       dispatch(setHighlights(paths));
     }
   } catch (err: any) {
-    const errorMsg = err.message || 'Failed to process message';
+    let errorMsg = 'Failed to process message';
+    if (typeof err === 'string') {
+      errorMsg = err;
+    } else if (err?.message) {
+      errorMsg = typeof err.message === 'object' ? JSON.stringify(err.message) : String(err.message);
+    } else if (typeof err === 'object') {
+      errorMsg = JSON.stringify(err);
+    }
+
     dispatch(
       addMessage({
         id: 'msg-err-' + Date.now(),
@@ -245,7 +253,14 @@ export const uploadDocument = createAsyncThunk<
       dispatch(setHighlights(paths));
     }
   } catch (err: any) {
-    const errorMsg = err.message || 'Failed to upload and extract document';
+    let errorMsg = 'Failed to upload and extract document';
+    if (typeof err === 'string') {
+      errorMsg = err;
+    } else if (err?.message) {
+      errorMsg = typeof err.message === 'object' ? JSON.stringify(err.message) : String(err.message);
+    } else if (typeof err === 'object') {
+      errorMsg = JSON.stringify(err);
+    }
     dispatch(
       addMessage({
         id: 'msg-err-upload-' + Date.now(),
