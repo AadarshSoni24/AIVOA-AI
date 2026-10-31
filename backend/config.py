@@ -13,7 +13,10 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./aivoa.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite+aiosqlite:////tmp/aivoa.db" if os.getenv("VERCEL") else "sqlite+aiosqlite:///./aivoa.db"
+    )
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
 
     @field_validator("CORS_ORIGINS", mode="before")

@@ -83,3 +83,4 @@ npm run dev
 ## Quality & Verification
 - **Frontend Build & Linter:** `npm run build && npm run lint` passes with 0 errors and 0 warnings.
 - **Contract Verification:** Automated regression test suite in `backend/stage3_verify.py`.
+
